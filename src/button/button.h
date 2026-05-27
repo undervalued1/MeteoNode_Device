@@ -22,7 +22,7 @@ private:
     unsigned long lastClickTime;
     
     const unsigned long debounceDelay = 50;
-    const unsigned long longPressTime = 1000;
+    const unsigned long longPressTime = 2000;   
     const unsigned long doubleClickTime = 400;
     
     ButtonState currentState;

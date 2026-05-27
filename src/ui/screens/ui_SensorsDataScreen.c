@@ -166,7 +166,9 @@ void ui_SensorsDataScreen_screen_init(void)
     lv_obj_set_y(ui_AQIArc, 20);
     lv_obj_set_align(ui_AQIArc, LV_ALIGN_TOP_MID);
     lv_arc_set_range(ui_AQIArc, 1, 5);
-    lv_arc_set_value(ui_AQIArc, 3);
+    lv_arc_set_value(ui_AQIArc, 1);           // начальное значение
+    lv_arc_set_bg_start_angle(ui_AQIArc, 135);  // можно подкорректировать внешний вид
+    lv_arc_set_bg_end_angle(ui_AQIArc, 45);
 
     lv_obj_set_style_bg_grad_dir(ui_AQIArc, LV_GRAD_DIR_VER, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_clip_corner(ui_AQIArc, true, LV_PART_INDICATOR | LV_STATE_DEFAULT);

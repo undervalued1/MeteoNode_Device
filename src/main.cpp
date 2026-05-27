@@ -18,6 +18,8 @@
 #include "connections/wifi_manager.h"
 #include "rtc/rtc.h"
 
+#include "button/button.h"
+
 
 #define LGFX_USE_V1
 
@@ -29,6 +31,7 @@ Sensors      sensors;
 WifiManager  wifiMgr;
 RTCManager   rtc;
 LocationManager locationMgr;
+Button       btn;
 
 bool ntpSynced = false;
 bool locationFetched = false;
@@ -36,6 +39,7 @@ bool locationAttempted = false;
 
 unsigned long lastNTPSync = 0;
 const unsigned long NTP_SYNC_INTERVAL = 86400000UL; // 24 часа
+
 
 
 
@@ -113,36 +117,87 @@ void initDisplay()
 }
 
 // Обновление датчиков и времени
+// Обновление датчиков и времени
 void UpdateSensorsAndTime()
 {
     SensorData data = sensors.read();
     DateTime dt = rtc.getDateTime();
-    char buf[16];
+    char buf[32];  // увеличил размер буфера на всякий случай
 
-    // MainScreen
-    snprintf(buf, sizeof(buf), "%02d", dt.hour); lv_label_set_text(ui_hour, buf);
-    snprintf(buf, sizeof(buf), "%02d", dt.minute); lv_label_set_text(ui_minute, buf);
+    // ====================== ВРЕМЯ ======================
+    snprintf(buf, sizeof(buf), "%02d", dt.hour);
+    lv_label_set_text(ui_hour, buf);
+    lv_label_set_text(ui_Hourlbl, buf);
+    lv_label_set_text(ui_Hourlbl1, buf);
+
+    snprintf(buf, sizeof(buf), "%02d", dt.minute);
+    lv_label_set_text(ui_minute, buf);
+    lv_label_set_text(ui_Minutlbl, buf);
+    lv_label_set_text(ui_Minutlbl1, buf);
+
     lv_label_set_text(ui_datetext, rtc.getDateString().c_str());
-
-    // SensorsDataScreen
-    snprintf(buf, sizeof(buf), "%02d", dt.hour); lv_label_set_text(ui_Hourlbl, buf);
-    snprintf(buf, sizeof(buf), "%02d", dt.minute); lv_label_set_text(ui_Minutlbl, buf);
     lv_label_set_text(ui_Datelbl, rtc.getDateString().c_str());
-
-    //WeatherScreen
-    snprintf(buf, sizeof(buf), "%02d", dt.hour); lv_label_set_text(ui_Hourlbl1, buf);
-    snprintf(buf, sizeof(buf), "%02d", dt.minute); lv_label_set_text(ui_Minutlbl1, buf);
     lv_label_set_text(ui_Datelbl1, rtc.getDateString().c_str());
 
-    // Датчики
+    // ====================== ДАТЧИКИ ======================
     if (data.isValid)
     {
-        snprintf(buf, sizeof(buf), "%.1f", data.temperature); lv_label_set_text(ui_Templbl, buf);
-        snprintf(buf, sizeof(buf), "%.0f", data.humidity); lv_label_set_text(ui_Humlbl, buf);
-        snprintf(buf, sizeof(buf), "%.0f hPa", data.pressure); lv_label_set_text(ui_Pressurelbl, buf);
-        snprintf(buf, sizeof(buf), "%d ppm", data.co2); lv_label_set_text(ui_CO2lbl, buf);
-        snprintf(buf, sizeof(buf), "%d ppb", data.tvoc); lv_label_set_text(ui_TVOClbl, buf);
-        snprintf(buf, sizeof(buf), "%.0f m", data.altitude); lv_label_set_text(ui_AltitudeAboveSeaLbl, buf);
+        // Температура и влажность
+        snprintf(buf, sizeof(buf), "%.1f", data.temperature); 
+        lv_label_set_text(ui_Templbl, buf);
+
+        snprintf(buf, sizeof(buf), "%.0f", data.humidity); 
+        lv_label_set_text(ui_Humlbl, buf);
+
+        // Давление и высота
+        snprintf(buf, sizeof(buf), "%.0f hPa", data.pressure); 
+        lv_label_set_text(ui_Pressurelbl, buf);
+
+        snprintf(buf, sizeof(buf), "%.0f m", data.altitude); 
+        lv_label_set_text(ui_AltitudeAboveSeaLbl, buf);
+
+        // ENS160
+        snprintf(buf, sizeof(buf), "%d ppm", data.co2); 
+        lv_label_set_text(ui_CO2lbl, buf);
+
+        snprintf(buf, sizeof(buf), "%d ppb", data.tvoc); 
+        lv_label_set_text(ui_TVOClbl, buf);
+
+        // ====================== AQI ARC ======================
+        if (data.aqi >= 1 && data.aqi <= 5)
+        {
+            lv_arc_set_value(ui_AQIArc, data.aqi);
+            
+            // === Изменено: теперь показывает число + качество ===
+            char aqiText[20];
+            snprintf(aqiText, sizeof(aqiText), "%d - %s", 
+                     data.aqi, sensors.getAQIString(data.aqi).c_str());
+            
+            lv_label_set_text(ui_AQILabel, aqiText);
+
+            // Цвет дуги
+            lv_color_t color;
+            switch(data.aqi)
+            {
+                case 1:  color = lv_color_hex(0x00FF00); break; // Excellent — зелёный
+                case 2:  color = lv_color_hex(0xAAFF00); break; // Good
+                case 3:  color = lv_color_hex(0xFFFF00); break; // Moderate — жёлтый
+                case 4:  color = lv_color_hex(0xFF8800); break; // Poor — оранжевый
+                case 5:  color = lv_color_hex(0xFF0000); break; // Unhealthy — красный
+                default: color = lv_color_hex(0x888888);
+            }
+            lv_obj_set_style_arc_color(ui_AQIArc, color, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+        }
+        else
+        {
+            lv_arc_set_value(ui_AQIArc, 0);
+            lv_label_set_text(ui_AQILabel, "--");
+        }
+    }
+    else
+    {
+        lv_arc_set_value(ui_AQIArc, 0);
+        lv_label_set_text(ui_AQILabel, "No data");
     }
 }
 
@@ -190,8 +245,46 @@ void setup()
     rtc.begin();
     wifiMgr.begin();
     locationMgr.begin();
+    
+    btn.begin();
+    Serial.println("System started with physical button on GPIO21");
 
     Serial.println("System started");
+}
+
+// ====================== УПРАВЛЕНИЕ ЭКРАНАМИ ЧЕРЕЗ КНОПКУ ======================
+static lv_obj_t* screens[] = {
+    ui_MainScreen,
+    ui_SensorsDataScreen,
+    ui_WeatherScreen,
+    ui_WiFiScreen
+};
+
+static const int totalScreens = sizeof(screens) / sizeof(screens[0]);
+static int currentScreenIndex = 0;
+
+void handleButtonPress()
+{
+    if (btn.isDoubleClicked())
+    {
+        Serial.println("Button: Double click → Main Screen");
+        _ui_screen_change(&ui_MainScreen, LV_SCR_LOAD_ANIM_FADE_ON, 250, 0, NULL);
+        currentScreenIndex = 0;
+    }
+    else if (btn.isClicked())
+    {
+        Serial.println("Button: Single click → Next Screen");
+        
+        currentScreenIndex = (currentScreenIndex + 1) % totalScreens;
+        
+        _ui_screen_change(&screens[currentScreenIndex], 
+                         LV_SCR_LOAD_ANIM_MOVE_LEFT, 320, 0, NULL);
+    }
+    else if (btn.isLongPressed())
+    {
+        Serial.println("Button: Long press → Options Screen");
+        _ui_screen_change(&ui_OptionsScreen, LV_SCR_LOAD_ANIM_FADE_ON, 200, 0, NULL);
+    }
 }
 
 // LOOP
@@ -353,6 +446,10 @@ void loop()
             // можно также сбросить иконки на главном экране
         }
     }
+
+    // ====================== ОБРАБОТКА ФИЗИЧЕСКОЙ КНОПКИ ======================
+    btn.update();
+    handleButtonPress();
 
     // ====================== LVGL TICK ======================
     if (now - last_tick >= 5)

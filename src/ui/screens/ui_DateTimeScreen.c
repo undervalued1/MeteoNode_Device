@@ -122,6 +122,8 @@ void ui_DateTimeScreen_screen_init(void)
 
     lv_obj_add_event_cb(ui_backbtn5, ui_event_backbtn5, LV_EVENT_ALL, NULL);
 
+    
+
 }
 
 void ui_DateTimeScreen_screen_destroy(void)

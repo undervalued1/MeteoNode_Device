@@ -13,7 +13,7 @@ Button::Button()
 
 void Button::begin() {
     pinMode(BUTTON_PIN, INPUT_PULLUP);
-    Serial.printf("Button initialized on GPIO%d\n", BUTTON_PIN);
+    Serial.println("Button initialized on GPIO21");
     lastReading = digitalRead(BUTTON_PIN);
     stableState = lastReading;
 }
@@ -21,22 +21,26 @@ void Button::begin() {
 void Button::update() {
     unsigned long now = millis();
     bool reading = digitalRead(BUTTON_PIN);
-    
+
     if (reading != lastReading) {
         lastDebounceTime = now;
     }
-    
+
     if ((now - lastDebounceTime) > debounceDelay) {
         if (reading != stableState) {
             stableState = reading;
-            
-            if (stableState == LOW) {
+
+            if (stableState == LOW) {           // нажали
                 pressStartTime = now;
                 currentState = BUTTON_PRESSED;
-            } else {
-                if (now - pressStartTime >= longPressTime) {
+            } 
+            else {                              // отпустили
+                unsigned long duration = now - pressStartTime;
+
+                if (duration >= longPressTime) {
                     currentState = BUTTON_LONG_PRESSED;
-                } else {
+                } 
+                else if (duration > 40) {       // защита от дребезга
                     clickCount++;
                     lastClickTime = now;
                     currentState = BUTTON_CLICKED;
@@ -44,16 +48,13 @@ void Button::update() {
             }
         }
     }
-    
+
+    // Двойной клик
     if (clickCount > 0 && (now - lastClickTime) > doubleClickTime) {
         clickCount = 0;
     }
-    
-    lastReading = reading;
-}
 
-bool Button::isPressed() {
-    return (stableState == LOW);
+    lastReading = reading;
 }
 
 bool Button::isLongPressed() {
@@ -75,20 +76,8 @@ bool Button::isClicked() {
 bool Button::isDoubleClicked() {
     if (clickCount >= 2) {
         clickCount = 0;
+        currentState = BUTTON_IDLE;
         return true;
     }
     return false;
-}
-
-ButtonState Button::getState() {
-    ButtonState state = currentState;
-    if (state != BUTTON_PRESSED) {
-        currentState = BUTTON_IDLE;
-    }
-    return state;
-}
-
-void Button::reset() {
-    clickCount = 0;
-    currentState = BUTTON_IDLE;
 }

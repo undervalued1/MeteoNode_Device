@@ -6,14 +6,14 @@
 #include "ui.h"
 #include "ui_helpers.h"
 
-///////////////////// VARIABLES ////////////////////
+///////////////////// VARIABLES ///////////////////
 
 // EVENTS
 lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
 
-///////////////////// TEST LVGL SETTINGS ////////////////////
+///////////////////// TEST LVGL SETTINGS ///////////////////
 #if LV_COLOR_DEPTH != 16
     #error "LV_COLOR_DEPTH should be 16bit to match SquareLine Studio's settings"
 #endif
@@ -21,11 +21,11 @@ lv_obj_t * ui____initial_actions0;
     #error "LV_COLOR_16_SWAP should be 0 to match SquareLine Studio's settings"
 #endif
 
-///////////////////// ANIMATIONS ////////////////////
+///////////////////// ANIMATIONS ///////////////////
 
-///////////////////// FUNCTIONS ////////////////////
+///////////////////// FUNCTIONS ///////////////////
 
-///////////////////// SCREENS ////////////////////
+///////////////////// SCREENS ///////////////////
 
 void ui_init(void)
 {
@@ -47,6 +47,12 @@ void ui_init(void)
     lv_obj_add_event_cb(ui_Wifisw, Wifisw_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(ui_ClearWifibtn, ClearWifibtn_event_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(ui_brightnessslider, brightness_slider_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
+    
+    lv_obj_add_event_cb(ui_AplyDateTimeBtn, DateTimeSaveBtn_event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ui_DateTimeScreen, DateTimeScreen_loaded_event_handler, LV_EVENT_SCREEN_LOADED, NULL);
+    
+    // ДОБАВИТЬ ОБРАБОТЧИК ДЛЯ КАЛЕНДАРЯ
+    lv_obj_add_event_cb(ui_Calendar, Calendar_event_handler, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 void ui_destroy(void)
